@@ -1,14 +1,25 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,get_object_or_404
+from django.contrib.auth.models import User, auth
+from django.contrib import messages
+from .models import Video,Document,Quiz, Question, Option
+from .forms import VideoFormSet,DocumentForm
+from django.http import JsonResponse
+from .forms import QuizForm
+import os
+from .models import User
+from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
-from .models import User
-from django.contrib.auth.decorators import login_required
 from .decorators import role_required
-from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .models import User
+# Registration view
+def home(request):
+    return render(request, 'home.html')
+def add_content(request):
+    return render(request,'add_content.html')
+def view_all(request):
+    return render(request,'view_all.html')
 
 def register(request):
     if request.method == 'POST':
@@ -78,3 +89,28 @@ def teacher_dashboard(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+
+""" Documents"""
+
+
+def upload_document(request):
+    if request.method == 'POST':
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('upload_document')  # Redirect to the list view after successful upload
+    else:
+        form = DocumentForm()
+
+    return render(request, 'upload_document.html', {'form': form})
+
+def document_list(request):
+    documents = Document.objects.all()
+
+    # Add file extension as metadata for each document
+    for doc in documents:
+        doc.file_extension = os.path.splitext(doc.file.url)[-1].lower()  # e.g., '.pdf', '.jpg'
+    
+    return render(request, 'document_list.html', {'documents': documents})
