@@ -114,3 +114,20 @@ def document_list(request):
         doc.file_extension = os.path.splitext(doc.file.url)[-1].lower()  # e.g., '.pdf', '.jpg'
     
     return render(request, 'document_list.html', {'documents': documents})
+""" video"""
+def video_list(request):
+    videos = Video.objects.all()
+    return render(request, 'video_list.html', {'videos': videos})
+
+def upload_videos(request):
+    if request.method == 'POST':
+        formset = VideoFormSet(request.POST, request.FILES)
+        if formset.is_valid():
+            formset.save()
+            messages.info(request, '*Upload successfully done*')
+            #return redirect('pload_videos')  # Ensure this matches the name in urls.py
+    else:
+        formset = VideoFormSet(queryset=Video.objects.none())
+
+    return render(request, 'upload_videos.html', {'formset': formset})
+
