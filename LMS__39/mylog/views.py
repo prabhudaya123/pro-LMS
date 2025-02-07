@@ -131,3 +131,114 @@ def upload_videos(request):
 
     return render(request, 'upload_videos.html', {'formset': formset})
 
+
+
+
+def create_quiz(request):
+    if request.method == 'POST':
+        quiz_title = request.POST.get('quiz_title')
+        quiz_description = request.POST.get('quiz_description')
+        quiz = Quiz.objects.create(title=quiz_title, description=quiz_description)
+
+        questions = request.POST.getlist('question[]')
+        options = request.POST.getlist('option[]')
+        correct_options = request.POST.getlist('correct_option[]')  # Now correct option is A, B, C, D
+
+        for i, question_text in enumerate(questions):
+            # Create Question object without options
+            question = Question.objects.create(
+                quiz=quiz,
+                question_text=question_text,
+                marks=1  # You can adjust the marks as needed
+            )
+
+            # Get options for the current question
+            option_a = options[i * 4 + 0] if options[i * 4 + 0] else "Default Option A"
+            option_b = options[i * 4 + 1] if options[i * 4 + 1] else "Default Option B"
+            option_c = options[i * 4 + 2] if options[i * 4 + 2] else "Default Option C"
+            option_d = options[i * 4 + 3] if options[i * 4 + 3] else "Default Option D"
+            correct_option = correct_options[i]  # 'A', 'B', 'C', 'D'
+
+            # Create Option object and associate it with the current question
+            Option.objects.create(
+                question=question,
+                option_a=option_a,
+                option_b=option_b,
+                option_c=option_c,
+                option_d=option_d,
+                correct_option=correct_option  # No need to convert
+            )
+
+        return redirect('quiz_list')
+
+    return render(request, 'create_quiz.html')
+
+    
+def attempt_quiz(request, quiz_id):
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    questions = quiz.questions.all()  # Get all the questions for this quiz
+
+    # Fetch options for each question
+    for question in questions:
+        question.options = question.option_set.all()  # Fetch related options for the question
+    
+    if request.method == 'POST':
+        score = 0
+        total_marks = 0 
+        for question in questions:
+            selected_answer = request.POST.get(f"question_{question.id}")  # Selected answer from form
+            
+            # Fetch the correct option from the associated options
+            correct_option_obj = question.option_set.first()  # Get the first option
+            if selected_answer.upper() == correct_option_obj.correct_option.upper():
+                score += question.marks
+            total_marks += question.marks
+        percentage = (score / total_marks) * 100 if total_marks > 0 else 0
+        percentage = round(percentage, 2)
+        return render(request, 'submit_quiz.html', {'score': score, 'quiz': quiz,'percentage': percentage,'total_marks': total_marks})
+
+    return render(request, 'attempt_quiz.html', {'quiz': quiz, 'questions': questions})
+
+
+
+
+
+
+def quiz_list(request):
+    quizzes = Quiz.objects.all()  # Get all quizzes from the database
+    return render(request, 'quiz_list.html', {'quizzes': quizzes})
+
+
+def submit_quiz(request, quiz_id):
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    questions = quiz.questions.all()
+
+    score = 0
+    total_marks = 0  # Initialize total_marks
+
+    for question in questions:
+        selected_answer = request.POST.get(f"question_{question.id}")  # 'A', 'B', 'C', or 'D'
+        
+        # Fetch the correct answer from the `Option` model
+        correct_answer = question.option_set.first().correct_option  # Already stored as 'A', 'B', 'C', 'D'
+
+        if selected_answer == correct_answer:
+            score += question.marks
+        
+        total_marks += question.marks  # Add to total_marks
+
+    percentage = (score / total_marks) * 100 if total_marks > 0 else 0
+    percentage = round(percentage, 2)  # Round the percentage to 2 decimal places
+
+    # Print to check if values are passed correctly
+    print(f"Score: {score}, Total Marks: {total_marks}, Percentage: {percentage}")
+
+    return render(request, 'submit_quiz.html', {
+        'score': score,
+        'quiz': quiz,
+        'percentage': percentage,  # Pass the calculated percentage
+        'total_marks': total_marks  # Pass total_marks to show in the template
+    })
+
+
+

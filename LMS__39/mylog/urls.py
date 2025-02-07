@@ -16,6 +16,13 @@ urlpatterns = [
 
     path('upload-videos/', views.upload_videos, name='upload_videos'),
     path('video-list/', views.video_list, name='video_list'),
+
+    
+    path('create/', views.create_quiz, name='create_quiz'),
+    path('quizzes/',views.quiz_list,name='quiz_list'),
+    path('quiz/', views.quiz_list, name='quiz_list'),  # Add this line
+    path('quiz/<int:quiz_id>/attempt/', views.attempt_quiz, name='attempt_quiz'),
+    path('quiz/<int:quiz_id>/submit/', views.submit_quiz, name='submit_quiz'),  
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
